@@ -133,7 +133,7 @@ L'exécution du script sur l'environnement de test a produit l'inventaire suivan
 - **WINDOWS-VM (Machine virtuelle)** : 5 correctifs recensés. Le dernier patch appliqué est le **KB5014032**.
 - **PC-Inaccessible** : Le poste a été filtré proprement grâce au ping préalable (ICMP), permettant au script de continuer sans blocage ni erreur de timeout WinRM.
 
-![Inventaire des correctifs](img/partie3_patches_inventory.png)
+![Inventaire des correctifs](img/getpatchesinventory.png)
 
 ### 3.3. Réponses aux Questions Théoriques (Partie 3)
 
