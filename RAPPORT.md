@@ -31,9 +31,13 @@ Afin de permettre l'exécution de commandes à distance depuis le poste hôte ve
 3. **Approbation des Hôtes** : L'environnement n'étant pas rattaché à un domaine Active Directory, il est indispensable d'autoriser l'hôte cible via la configuration de la liste de confiance WinRM sur le poste d'administration : `Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force`.
 4. **Validation du Service** : Le bon fonctionnement du service WinRM a été validé à l'aide de l'applet de commande `Test-WSMan`.
 
+![Validation Test-WSMan](img/test-wsman.png)
+
 **Tests d'interaction à distance effectués :**
 - **Session interactive** : Ouverture d'un shell distant de manière interactive via `Enter-PSSession -ComputerName <IP> -Credential (Get-Credential)`.
 - **Exécution non interactive** : Envoi de commandes via `Invoke-Command -ComputerName <IP> -ScriptBlock { <Commandes> } -Credential (Get-Credential)`.
+
+![Test Invoke-Command](img/invoke.png)
 
 Dans les deux cas, le passage des identifiants s'est fait de manière explicite via `Get-Credential`.
 
@@ -74,6 +78,8 @@ Le script met en œuvre plusieurs mécanismes pour assurer un inventaire fiable 
    - Pour le poste hôte (`localhost`), la collecte est effectuée en exécution directe locale. Cela permet de contourner les limitations strictes d'authentification réseau locales en mode Workgroup (erreur `0x8009030e`).
    - Pour les machines distantes, l'exécution s'appuie sur `Invoke-Command` en passant les identifiants requis via un objet credential.
 3. **Robustesse et test de connectivité préalable** : Avant toute tentative de connexion WinRM, la disponibilité de chaque machine distante est validée via `Test-Connection` (ping ICMP). Cela permet d'identifier instantanément les hôtes injoignables (`PC-Inaccessible`) sans subir les longs délais d'attente (timeouts) liés à une requête WinRM dans le vide.
+
+   ![Test de connectivité (Ping)](img/ping.png)
 4. **Collecte des métriques (WMI/CIM)** : L'inventaire extrait des données clés à l'aide de requêtes `Get-CimInstance` sur plusieurs classes :
    - `Win32_ComputerSystem` (Modèle, RAM totale)
    - `Win32_OperatingSystem` (Version de l'OS)
@@ -92,7 +98,8 @@ L'exécution du script sur l'environnement de test a permis d'obtenir l'inventai
 | WINDOWS-VM | 10.3.206.45 | Windows 10 | 2,00 Go | 28,84 Go | Accessible |
 | PC-Inaccessible | 192.168.1.250 | N/A | N/A | N/A | Inaccessible |
 
-![Inventaire du parc](img/partie2_park_inventory.png)
+![Inventaire du parc (1)](img/parkinventory1.png)
+![Inventaire du parc (2)](img/parkinventory2.png)
 
 ### 2.3. Réponses aux Questions Théoriques (Partie 2)
 
