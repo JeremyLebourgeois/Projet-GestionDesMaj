@@ -1,0 +1,4 @@
+﻿"Poste";"AdresseIP";"Modele";"VersionBios";"Windows";"Architecture";"DernierDemarrage";"RAM_Go";"DisqueLibre_Go";"DerniereMaj";"NbMajInstallees";"WindowsUpdate";"Etat";"Erreur"
+"MSI";"localhost";"Pulse GL66 12UGK";"E1583IMS.10D";"Microsoft Windows 11 Famille";"64 bits";"07/10/2026 11:29";"15,71";"186,51";"15/09/2026";"4";"Stopped";"Accessible";"Aucune"
+"WINDOWS-VM";"10.3.206.45";"VirtualBox";"VirtualBox";"Microsoft Windows 10 Famille";"64 bits";"09/10/2026 12:43";"2";"28,84";"04/12/2023";"5";"Stopped";"Accessible";"Aucune"
+"PC-Inaccessible";"192.168.1.250";"N/A";"N/A";"N/A";"N/A";"N/A";"N/A";"N/A";"N/A";"N/A";"N/A";"Inaccessible";"Hote non joignable (ping)"
