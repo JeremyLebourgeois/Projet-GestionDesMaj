@@ -112,15 +112,46 @@ L'utilisation de `Invoke-Command` permet d'exécuter des scripts en parallèle s
 #### 3. Pourquoi est-il critique de vérifier l'état du service Windows Update (`wuauserv`) lors d'un audit de parc ?
 Le service Windows Update (`wuauserv`) est responsable de la recherche, du téléchargement et de l'installation des mises à jour. Si ce service est arrêté ou désactivé sur une machine, celle-ci ne pourra plus recevoir les correctifs de sécurité critiques (patchs automatiques ou déploiements centralisés via des outils de gestion). Vérifier son état est donc essentiel pour identifier immédiatement les hôtes vulnérables et isolés du cycle de mise à jour.
 
-### 2.4. Inventaire des Correctifs (Partie 3)
-* Méthode de collecte des KB avec `Get-HotFix` (Partie 3)[cite: 4]
-* Gestion des erreurs et des machines inaccessibles[cite: 3, 4]
+## 3. Inventaire des Correctifs (Partie 3)
 
-## 3. Contrôle de Conformité et Reporting
+Cette partie vise à recenser de manière exhaustive l'ensemble des mises à jour installées sur les machines du parc. Le script chargé de cette opération est `scripts/Get-PatchesInventory.ps1`.
+
+### 3.1. Algorithme et Fonctionnement
+
+Le script suit un processus structuré pour garantir une collecte efficace :
+
+1. **Extraction des métriques** : Il s'appuie sur la cmdlet `Get-HotFix` pour récupérer les informations essentielles de chaque correctif, notamment `HotFixID` (le numéro KB), `Description`, `InstalledOn` (Date d'installation) et `InstalledBy` (Installé par).
+2. **Exécution hybride et asynchrone** : De la même manière que pour l'inventaire matériel, le script interroge simultanément le poste hôte localement (pour éviter les erreurs d'authentification Workgroup) et la machine virtuelle (WINDOWS-VM) à distance via WinRM (avec `Invoke-Command`).
+3. **Formatage et tri** : Les données brutes recueillies sont formatées (les dates sont converties au format `yyyy-MM-dd` ou marquées "Inconnue") puis triées par poste et par date d'installation décroissante.
+4. **Exportation des données** : Les objets résultants sont exportés dans le fichier `Patches Inventory.csv`, en utilisant le point-virgule (`;`) comme délimiteur et l'encodage `UTF-8` pour assurer une compatibilité optimale.
+5. **Génération d'un résumé en console** : À l'aide de la cmdlet `Group-Object`, le script génère une synthèse finale affichée dans la console. Ce tableau récapitule pour chaque machine le volume total de correctifs appliqués et les détails du tout dernier patch déployé.
+
+### 3.2. Résultats Obtenus
+
+L'exécution du script sur l'environnement de test a produit l'inventaire suivant :
+- **MSI (Hôte local)** : 4 correctifs recensés. Le dernier patch appliqué est le **KB5129195**.
+- **WINDOWS-VM (Machine virtuelle)** : 5 correctifs recensés. Le dernier patch appliqué est le **KB5014032**.
+- **PC-Inaccessible** : Le poste a été filtré proprement grâce au ping préalable (ICMP), permettant au script de continuer sans blocage ni erreur de timeout WinRM.
+
+![Inventaire des correctifs](img/partie3_patches_inventory.png)
+
+### 3.3. Réponses aux Questions Théoriques (Partie 3)
+
+#### 1. Que représente un numéro KB chez Microsoft et quel est son cycle de publication (Patch Tuesday) ?
+Un numéro KB (Knowledge Base) est un identifiant unique attribué par Microsoft à chaque mise à jour, correctif de sécurité ou article technique. Microsoft publie massivement ces mises à jour correctives de sécurité le deuxième mardi de chaque mois, un événement communément appelé le **"Patch Tuesday"**.
+
+#### 2. Pourquoi `Get-HotFix` peut-il renvoyer un champ `InstalledOn` vide ou au format texte brut selon les types de correctifs ?
+La cmdlet `Get-HotFix` s'appuie sur la classe WMI `Win32_QuickFixEngineering`. Selon la manière dont un correctif a été packagé et appliqué (par exemple, via Windows Update, un MSI, ou un installeur tiers), le fournisseur WMI sous-jacent peut ne pas parvenir à parser la date d'installation. Dans certains cas, la date n'est tout simplement pas enregistrée dans le système, ou elle est retournée sous forme de chaîne de caractères (String) plutôt que comme un objet DateTime, nécessitant un traitement conditionnel dans le script.
+
+#### 3. Quelle est la différence entre une mise à jour de sécurité cumulative (LCU) et une mise à jour de pile de maintenance (SSU) ?
+- **LCU (Latest Cumulative Update)** : C'est une mise à jour mensuelle qui regroupe tous les correctifs de sécurité et de qualité précédents. L'installation du dernier LCU garantit que le système est à jour au niveau fonctionnel et sécuritaire.
+- **SSU (Servicing Stack Update)** : C'est une mise à jour du composant même qui installe les mises à jour Windows (la pile de maintenance). Les SSU doivent souvent être installées *avant* les LCU pour que le moteur de mise à jour soit capable de traiter correctement et de déployer les nouveaux packages de correctifs cumulatifs.
+
+## 4. Contrôle de Conformité et Reporting
 * Algorithme de comparaison avec `required-patches.txt` (Partie 4)[cite: 4]
 * Calcul du taux global de conformité[cite: 4]
 * Génération du rapport HTML et système de logs (Partie 6)[cite: 5]
 
-## 4. Notifications et Sécurisation
+## 5. Notifications et Sécurisation
 * Mécanisme d'alerte en cas d'anomalie et limites du SMTP (Partie 7)[cite: 5, 6]
 * Durcissement de la solution : moindre privilège, pare-feu, JEA et intégrité des journaux (Partie 8)[cite: 6]
