@@ -4,56 +4,88 @@ param (
     [pscredential]$Credential
 )
 
-if (-not $Credential) {
-    $Credential = Get-Credential
-}
-
 if (-not (Test-Path $InventoryFile)) {
-    Write-Error "Fichier $InventoryFile introuvable."
+    Write-Error "Fichier d'inventaire introuvable : $InventoryFile"
     exit 1
 }
 
 $computers = Import-Csv -Path $InventoryFile -Delimiter ';' -Header "Nom", "IP"
 $allPatches = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+$patchBlock = {
+    Get-HotFix | Select-Object HotFixID, Description, InstalledOn, InstalledBy
+}
+
 foreach ($pc in $computers) {
     Write-Host "Collecte des correctifs sur $($pc.Nom) ($($pc.IP))..." -ForegroundColor Cyan
-    
+
+    $isLocal = ($pc.IP -in @("localhost", "127.0.0.1") -or $pc.Nom -eq $env:COMPUTERNAME)
+
+    if ($isLocal) {
+        try {
+            $patches = & $patchBlock
+            foreach ($p in $patches) {
+                $dateStr = if ($p.InstalledOn) { (Get-Date $p.InstalledOn).ToString("yyyy-MM-dd") } else { "Inconnue" }
+                $allPatches.Add([PSCustomObject]@{
+                    Poste            = $pc.Nom
+                    AdresseIP        = $pc.IP
+                    KB               = $p.HotFixID
+                    Description      = $p.Description
+                    DateInstallation = $dateStr
+                    InstallePar      = $p.InstalledBy
+                })
+            }
+        }
+        catch {
+            Write-Warning "Erreur locale lors de la collecte sur $($pc.Nom) : $_"
+        }
+        continue
+    }
+
     $pingOk = Test-Connection -ComputerName $pc.IP -Count 1 -Quiet
     if (-not $pingOk) {
-        Write-Warning "$($pc.Nom) est inaccessible (ping)."
+        Write-Warning "$($pc.Nom) est injoignable (ping)."
         continue
     }
 
     try {
-        $patches = Invoke-Command -ComputerName $pc.IP -Credential $Credential -ErrorAction Stop -ScriptBlock {
-            Get-HotFix | Select-Object HotFixID, Description, InstalledOn, InstalledBy
+        $invokeParams = @{
+            ComputerName = $pc.IP
+            ErrorAction  = "Stop"
+            ScriptBlock  = $patchBlock
+        }
+        if ($Credential) {
+            $invokeParams["Credential"] = $Credential
         }
 
-        foreach ($patch in $patches) {
+        $patches = Invoke-Command @invokeParams
+
+        foreach ($p in $patches) {
+            $dateStr = if ($p.InstalledOn) { (Get-Date $p.InstalledOn).ToString("yyyy-MM-dd") } else { "Inconnue" }
             $allPatches.Add([PSCustomObject]@{
                 Poste            = $pc.Nom
                 AdresseIP        = $pc.IP
-                KB               = $patch.HotFixID
-                Description      = $patch.Description
-                DateInstallation = if ($patch.InstalledOn) { $patch.InstalledOn.ToString("yyyy-MM-dd") } else { "Inconnue" }
-                InstallePar      = $patch.InstalledBy
+                KB               = $p.HotFixID
+                Description      = $p.Description
+                DateInstallation = $dateStr
+                InstallePar      = $p.InstalledBy
             })
         }
     }
     catch {
-        Write-Warning "Impossible de collecter les KB sur $($pc.Nom) : $_"
+        Write-Warning "Erreur WinRM sur $($pc.Nom) : $_"
     }
 }
 
-# Tri par poste puis par date d'installation décroissante
+# Tri par Poste puis par DateInstallation décroissante
 $sortedPatches = $allPatches | Sort-Object Poste, DateInstallation -Descending
 
-# Export CSV
+# Exportation en CSV
 $sortedPatches | Export-Csv -Path $OutputFile -NoTypeInformation -Delimiter ';' -Encoding UTF8
-Write-Host "Inventaire des correctifs exporté dans : $OutputFile" -ForegroundColor Green
+Write-Host "`nInventaire des correctifs exporté avec succès dans : $OutputFile" -ForegroundColor Green
 
-# Statistiques par machine
+# Synthèse dans la console
+Write-Host "`n--- Synthèse des correctifs par machine ---" -ForegroundColor Yellow
 $allPatches | Group-Object Poste | ForEach-Object {
     $last = $_.Group | Sort-Object DateInstallation -Descending | Select-Object -First 1
     [PSCustomObject]@{
