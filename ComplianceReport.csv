@@ -1,0 +1,4 @@
+﻿"Poste";"AdresseIP";"NbRequises";"NbManquantes";"KBManquantes";"Statut";"DateControle"
+"MSI";"localhost";"3";"3";"KB5014032, KB5129195, KB9999999";"NON CONFORME";"21/10/2026 10:56:32"
+"WINDOWS-VM";"192.168.56.101";"3";"2";"KB5129195, KB9999999";"NON CONFORME";"21/10/2026 10:56:32"
+"PC-Inaccessible";"192.168.1.250";"3";"N/A";"N/A";"INACCESSIBLE";"21/10/2026 10:56:32"
